@@ -10,6 +10,16 @@ public partial class MainPage : ContentPage
     private readonly SelectionService _selection;
     private readonly PrefetchService _prefetch;
 
+    // Resize debounce
+    private CancellationTokenSource? _resizeDebounce;
+    private const int ResizeDebounceMs = 150;
+
+    // Grid layout constants
+    private const int TileSize = 140;
+    private const int TileSpacing = 4;
+    private const int LeftPanelWidth = 220;
+    private const int RightPanelWidth = 320;
+
     public MainPage(MainViewModel viewModel, SelectionService selection, PrefetchService prefetch)
     {
         InitializeComponent();
@@ -20,6 +30,9 @@ public partial class MainPage : ContentPage
 
         // Subscribe to preview close to stop video
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+
+        // Subscribe to size changes for column recalculation
+        SizeChanged += OnPageSizeChanged;
     }
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -122,5 +135,46 @@ public partial class MainPage : ContentPage
     {
         var item = e.CurrentSelection.FirstOrDefault() as MediaItem;
         _viewModel.OnGridSelectionChanged(item);
+    }
+
+    private void OnPageSizeChanged(object? sender, EventArgs e)
+    {
+        // Debounce resize to avoid thrashing
+        _resizeDebounce?.Cancel();
+        _resizeDebounce = new CancellationTokenSource();
+        var ct = _resizeDebounce.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(ResizeDebounceMs, ct);
+                if (!ct.IsCancellationRequested)
+                {
+                    MainThread.BeginInvokeOnMainThread(RecalculateGridLayout);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when resizing rapidly
+            }
+        }, ct);
+    }
+
+    private void RecalculateGridLayout()
+    {
+        // Calculate available width for grid (total width - panels)
+        var availableWidth = Width - LeftPanelWidth - RightPanelWidth - 16; // 16 for padding
+
+        if (availableWidth <= 0) return;
+
+        // Calculate columns that fit
+        var columns = Math.Max(1, (int)(availableWidth / (TileSize + TileSpacing)));
+
+        // Calculate visible rows (approximate)
+        var availableHeight = Height - 100; // Header + status bar
+        var visibleRows = Math.Max(1, (int)(availableHeight / (TileSize + TileSpacing)));
+
+        _viewModel.SetGridLayout(columns, visibleRows);
     }
 }

@@ -78,6 +78,12 @@ public partial class MainViewModel : ObservableObject
     private ObservableCollection<MediaGroup> _groups = [];
 
     /// <summary>
+    /// Virtualized timeline rows for grouped mode (headers + tile rows).
+    /// </summary>
+    [ObservableProperty]
+    private ObservableCollection<TimelineRow> _timelineRows = [];
+
+    /// <summary>
     /// True when the grid should display grouped items.
     /// </summary>
     public bool IsGrouped => GroupBy != GroupBy.None;
@@ -111,11 +117,20 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>
     /// Update grid layout info for keyboard navigation.
+    /// Also rebuilds timeline rows if column count changed in grouped mode.
     /// </summary>
     public void SetGridLayout(int columns, int visibleRows)
     {
+        var columnsChanged = _columnsPerRow != columns;
         _columnsPerRow = columns;
         _itemsPerPage = columns * visibleRows;
+
+        // Rebuild timeline rows if columns changed in grouped mode
+        if (columnsChanged && IsGrouped && Groups.Count > 0)
+        {
+            var rows = TimelineRowBuilder.BuildRows(Groups, columns);
+            TimelineRows = new ObservableCollection<TimelineRow>(rows);
+        }
     }
 
     #region Search and Filters
@@ -258,6 +273,10 @@ public partial class MainViewModel : ObservableObject
             Groups = new ObservableCollection<MediaGroup>(result.Groups);
             TotalCount = result.TotalCount;
 
+            // Build virtualized timeline rows
+            var rows = TimelineRowBuilder.BuildRows(result.Groups, _columnsPerRow);
+            TimelineRows = new ObservableCollection<TimelineRow>(rows);
+
             // Flatten for selection service
             allItems = result.Groups.SelectMany(g => g.Items).ToList();
             Items = new ObservableCollection<MediaItem>(allItems);
@@ -269,6 +288,7 @@ public partial class MainViewModel : ObservableObject
             var result = await _itemStore.QueryAsync(_query.Current, limit: 5000);
             Items = new ObservableCollection<MediaItem>(result.Items);
             Groups = new ObservableCollection<MediaGroup>();
+            TimelineRows = new ObservableCollection<TimelineRow>();
             ItemCount = result.Items.Count;
             TotalCount = result.TotalCount;
             allItems = result.Items;

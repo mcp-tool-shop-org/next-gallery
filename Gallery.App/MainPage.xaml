@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:Gallery.App.ViewModels"
              xmlns:views="clr-namespace:Gallery.App.Views"
              xmlns:converters="clr-namespace:Gallery.App.Converters"
+             xmlns:selectors="clr-namespace:Gallery.App.TemplateSelectors"
              xmlns:domain="clr-namespace:Gallery.Domain.Models;assembly=Gallery.Domain"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="Gallery.App.MainPage"
@@ -309,21 +310,24 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <!-- Center: Timeline Grid (Grouped mode) -->
-            <ScrollView Grid.Row="1" Grid.Column="1"
-                        BackgroundColor="{StaticResource Gray950}"
-                        IsVisible="{Binding IsGrouped}">
-                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Groups}"
-                                     Spacing="16"
-                                     Padding="8">
-                    <BindableLayout.ItemTemplate>
-                        <DataTemplate x:DataType="domain:MediaGroup">
-                            <VerticalStackLayout Spacing="8">
-                                <!-- Sticky group header -->
+            <!-- Center: Virtualized Timeline Grid (Grouped mode) -->
+            <CollectionView x:Name="TimelineGrid"
+                            Grid.Row="1" Grid.Column="1"
+                            ItemsSource="{Binding TimelineRows}"
+                            BackgroundColor="{StaticResource Gray950}"
+                            IsVisible="{Binding IsGrouped}">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="0" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <selectors:TimelineRowTemplateSelector>
+                        <!-- Group Header Template -->
+                        <selectors:TimelineRowTemplateSelector.HeaderTemplate>
+                            <DataTemplate x:DataType="domain:GroupHeaderRow">
                                 <Border BackgroundColor="{StaticResource Gray900}"
                                         Padding="12,8"
                                         StrokeThickness="0"
-                                        Margin="0,8,0,0">
+                                        Margin="0,12,0,4">
                                     <Grid ColumnDefinitions="*,Auto">
                                         <Label Text="{Binding Title}"
                                                FontSize="16"
@@ -337,16 +341,18 @@
                                                VerticalOptions="Center" />
                                     </Grid>
                                 </Border>
+                            </DataTemplate>
+                        </selectors:TimelineRowTemplateSelector.HeaderTemplate>
 
-                                <!-- Items in this group -->
-                                <FlexLayout BindableLayout.ItemsSource="{Binding Items}"
-                                            Wrap="Wrap"
-                                            JustifyContent="Start"
-                                            AlignItems="Start">
+                        <!-- Tile Row Template -->
+                        <selectors:TimelineRowTemplateSelector.TileRowTemplate>
+                            <DataTemplate x:DataType="domain:TileRow">
+                                <HorizontalStackLayout BindableLayout.ItemsSource="{Binding Items}"
+                                                       Spacing="4"
+                                                       Padding="4,2">
                                     <BindableLayout.ItemTemplate>
                                         <DataTemplate x:DataType="domain:MediaItem">
-                                            <Border Style="{StaticResource GridItemStyle}"
-                                                    Margin="2">
+                                            <Border Style="{StaticResource GridItemStyle}">
                                                 <Border.GestureRecognizers>
                                                     <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:MainViewModel}}, Path=SelectItemCommand}"
                                                                           CommandParameter="{Binding .}" />
@@ -412,12 +418,12 @@
                                             </Border>
                                         </DataTemplate>
                                     </BindableLayout.ItemTemplate>
-                                </FlexLayout>
-                            </VerticalStackLayout>
-                        </DataTemplate>
-                    </BindableLayout.ItemTemplate>
-                </VerticalStackLayout>
-            </ScrollView>
+                                </HorizontalStackLayout>
+                            </DataTemplate>
+                        </selectors:TimelineRowTemplateSelector.TileRowTemplate>
+                    </selectors:TimelineRowTemplateSelector>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
 
             <!-- Right Panel: Inspector -->
             <Border Grid.Row="1" Grid.Column="2"
