@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Gallery.App.ViewModels"
+             x:Class="Gallery.App.Views.QuickPreviewOverlay"
+             x:DataType="vm:MainViewModel"
+             BackgroundColor="#E0000000">
+
+    <Grid>
+        <!-- Tap to close -->
+        <Grid.GestureRecognizers>
+            <TapGestureRecognizer Command="{Binding CloseQuickPreviewCommand}" />
+        </Grid.GestureRecognizers>
+
+        <!-- Main preview area -->
+        <Border BackgroundColor="Transparent"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Margin="60">
+            <Grid>
+                <!-- The image -->
+                <Image x:Name="PreviewImage"
+                       Aspect="AspectFit"
+                       HorizontalOptions="Fill"
+                       VerticalOptions="Fill" />
+
+                <!-- Loading indicator -->
+                <ActivityIndicator x:Name="LoadingIndicator"
+                                   IsRunning="True"
+                                   Color="{StaticResource White}"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   HeightRequest="48"
+                                   WidthRequest="48" />
+            </Grid>
+        </Border>
+
+        <!-- Navigation hints -->
+        <HorizontalStackLayout HorizontalOptions="Center"
+                               VerticalOptions="End"
+                               Margin="0,0,0,24"
+                               Spacing="24">
+            <Label Text="← → Navigate"
+                   TextColor="{StaticResource Gray400}"
+                   FontSize="12" />
+            <Label Text="Space Close"
+                   TextColor="{StaticResource Gray400}"
+                   FontSize="12" />
+            <Label Text="Esc Exit"
+                   TextColor="{StaticResource Gray400}"
+                   FontSize="12" />
+        </HorizontalStackLayout>
+
+        <!-- File info overlay -->
+        <Border BackgroundColor="#80000000"
+                HorizontalOptions="Start"
+                VerticalOptions="End"
+                Padding="16,8"
+                Margin="24">
+            <Label x:Name="FileInfoLabel"
+                   TextColor="{StaticResource White}"
+                   FontSize="12" />
+        </Border>
+    </Grid>
+</ContentView>

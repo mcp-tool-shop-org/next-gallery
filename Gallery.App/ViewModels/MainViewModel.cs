@@ -3,6 +3,7 @@ using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Gallery.Application.Interfaces;
+using Gallery.App.Services;
 using Gallery.Domain.Enums;
 using Gallery.Domain.Models;
 using Gallery.Infrastructure.Services;
@@ -15,6 +16,11 @@ public partial class MainViewModel : ObservableObject
     private readonly IMediaItemStore _itemStore;
     private readonly IItemIndexService _indexService;
     private readonly ThumbWorker _thumbWorker;
+    private readonly SelectionService _selection;
+
+    // Grid layout info for keyboard navigation
+    private int _columnsPerRow = 6;
+    private int _itemsPerPage = 24;
 
     [ObservableProperty]
     private ObservableCollection<LibraryFolder> _folders = [];
@@ -35,20 +41,23 @@ public partial class MainViewModel : ObservableObject
     private int _itemCount;
 
     [ObservableProperty]
-    private int _pendingThumbs;
+    private bool _isQuickPreviewOpen;
 
     public MainViewModel(
         ILibraryStore libraryStore,
         IMediaItemStore itemStore,
         IItemIndexService indexService,
-        ThumbWorker thumbWorker)
+        ThumbWorker thumbWorker,
+        SelectionService selection)
     {
         _libraryStore = libraryStore;
         _itemStore = itemStore;
         _indexService = indexService;
         _thumbWorker = thumbWorker;
+        _selection = selection;
 
         _thumbWorker.ThumbGenerated += OnThumbGenerated;
+        _selection.SelectionChanged += OnSelectionChanged;
     }
 
     public async Task InitializeAsync()
@@ -57,6 +66,79 @@ public partial class MainViewModel : ObservableObject
         await LoadItemsAsync();
         _thumbWorker.Start();
     }
+
+    /// <summary>
+    /// Update grid layout info for keyboard navigation.
+    /// </summary>
+    public void SetGridLayout(int columns, int visibleRows)
+    {
+        _columnsPerRow = columns;
+        _itemsPerPage = columns * visibleRows;
+    }
+
+    #region Keyboard Navigation
+
+    [RelayCommand]
+    private void MoveLeft() => _selection.Move(-1);
+
+    [RelayCommand]
+    private void MoveRight() => _selection.Move(1);
+
+    [RelayCommand]
+    private void MoveUp() => _selection.MoveRow(-1, _columnsPerRow);
+
+    [RelayCommand]
+    private void MoveDown() => _selection.MoveRow(1, _columnsPerRow);
+
+    [RelayCommand]
+    private void MoveHome() => _selection.SelectRowStart(_columnsPerRow);
+
+    [RelayCommand]
+    private void MoveEnd() => _selection.SelectRowEnd(_columnsPerRow);
+
+    [RelayCommand]
+    private void MoveFirst() => _selection.SelectFirst();
+
+    [RelayCommand]
+    private void MoveLast() => _selection.SelectLast();
+
+    [RelayCommand]
+    private void PageUp() => _selection.PageMove(-1, _itemsPerPage);
+
+    [RelayCommand]
+    private void PageDown() => _selection.PageMove(1, _itemsPerPage);
+
+    [RelayCommand]
+    private void ToggleQuickPreview()
+    {
+        if (SelectedItem is not null)
+        {
+            IsQuickPreviewOpen = !IsQuickPreviewOpen;
+        }
+    }
+
+    [RelayCommand]
+    private void CloseQuickPreview()
+    {
+        IsQuickPreviewOpen = false;
+    }
+
+    [RelayCommand]
+    private void ClearSelection()
+    {
+        if (IsQuickPreviewOpen)
+        {
+            IsQuickPreviewOpen = false;
+        }
+        else
+        {
+            _selection.Select(null);
+        }
+    }
+
+    #endregion
+
+    #region Library Management
 
     [RelayCommand]
     private async Task AddFolderAsync()
@@ -126,6 +208,10 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    #endregion
+
+    #region Item Actions
+
     [RelayCommand]
     private async Task ToggleFavoriteAsync()
     {
@@ -133,14 +219,9 @@ public partial class MainViewModel : ObservableObject
 
         var newValue = !SelectedItem.IsFavorite;
         await _itemStore.SetFavoriteAsync(SelectedItem.Id, newValue);
-        SelectedItem = SelectedItem with { IsFavorite = newValue };
-
-        // Update in collection
-        var index = Items.IndexOf(Items.FirstOrDefault(i => i.Id == SelectedItem.Id)!);
-        if (index >= 0)
-        {
-            Items[index] = SelectedItem;
-        }
+        var updated = SelectedItem with { IsFavorite = newValue };
+        _selection.UpdateItem(updated);
+        UpdateItemInCollection(updated);
     }
 
     [RelayCommand]
@@ -149,7 +230,8 @@ public partial class MainViewModel : ObservableObject
         if (SelectedItem is null) return;
 
         await _itemStore.SetRatingAsync(SelectedItem.Id, rating);
-        SelectedItem = SelectedItem with { Rating = rating };
+        var updated = SelectedItem with { Rating = rating };
+        _selection.UpdateItem(updated);
     }
 
     [RelayCommand]
@@ -157,14 +239,10 @@ public partial class MainViewModel : ObservableObject
     {
         if (SelectedItem is null) return;
 
-        var directory = Path.GetDirectoryName(SelectedItem.Path);
-        if (!string.IsNullOrEmpty(directory))
+        await Launcher.Default.OpenAsync(new OpenFileRequest
         {
-            await Launcher.Default.OpenAsync(new OpenFileRequest
-            {
-                File = new ReadOnlyFile(SelectedItem.Path)
-            });
-        }
+            File = new ReadOnlyFile(SelectedItem.Path)
+        });
     }
 
     [RelayCommand]
@@ -172,6 +250,10 @@ public partial class MainViewModel : ObservableObject
     {
         await LoadItemsAsync();
     }
+
+    #endregion
+
+    #region Data Loading
 
     private async Task LoadFoldersAsync()
     {
@@ -184,28 +266,64 @@ public partial class MainViewModel : ObservableObject
         var items = await _itemStore.GetAllAsync(limit: 5000);
         Items = new ObservableCollection<MediaItem>(items);
         ItemCount = Items.Count;
+
+        // Update selection service
+        _selection.Items = items;
+    }
+
+    #endregion
+
+    #region Event Handlers
+
+    private void OnSelectionChanged(object? sender, ItemSelectionChangedEventArgs e)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            SelectedItem = e.Current;
+        });
     }
 
     private void OnThumbGenerated(object? sender, ThumbGeneratedEventArgs e)
     {
-        // Update the item in the collection on UI thread
         MainThread.BeginInvokeOnMainThread(() =>
         {
             var item = Items.FirstOrDefault(i => i.Id == e.ItemId);
-            if (item is not null)
-            {
-                var index = Items.IndexOf(item);
-                var updated = e.Size == ThumbSize.Small
-                    ? item with { ThumbSmallPath = e.ThumbPath }
-                    : item with { ThumbLargePath = e.ThumbPath };
-                Items[index] = updated;
+            if (item is null) return;
 
-                // Update selected item if it's the one that changed
-                if (SelectedItem?.Id == e.ItemId)
-                {
-                    SelectedItem = updated;
-                }
-            }
+            var updated = e.Size == ThumbSize.Small
+                ? item with { ThumbSmallPath = e.ThumbPath }
+                : item with { ThumbLargePath = e.ThumbPath };
+
+            UpdateItemInCollection(updated);
+            _selection.UpdateItem(updated);
         });
+    }
+
+    private void UpdateItemInCollection(MediaItem updated)
+    {
+        var index = -1;
+        for (var i = 0; i < Items.Count; i++)
+        {
+            if (Items[i].Id == updated.Id)
+            {
+                index = i;
+                break;
+            }
+        }
+
+        if (index >= 0)
+        {
+            Items[index] = updated;
+        }
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Handle grid selection from UI (syncs back to SelectionService).
+    /// </summary>
+    public void OnGridSelectionChanged(MediaItem? item)
+    {
+        _selection.Select(item);
     }
 }
