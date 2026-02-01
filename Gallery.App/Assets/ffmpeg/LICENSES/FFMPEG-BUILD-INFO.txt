@@ -1,0 +1,22 @@
+FFmpeg Build Information
+========================
+
+This file documents the FFmpeg binaries bundled with NextGallery.
+
+Build Source: https://www.gyan.dev/ffmpeg/builds/
+Build Type: release-essentials (LGPL)
+Version: [UPDATE WITH ACTUAL VERSION]
+
+SHA-256 Checksums:
+- win-x64/ffmpeg.exe:  [UPDATE WITH ACTUAL HASH]
+- win-x64/ffprobe.exe: [UPDATE WITH ACTUAL HASH]
+- win-arm64/ffmpeg.exe:  [UPDATE WITH ACTUAL HASH]
+- win-arm64/ffprobe.exe: [UPDATE WITH ACTUAL HASH]
+
+Build Configuration:
+- LGPL-compliant (no GPL components)
+- Static linking
+- Essentials codecs only (H.264, H.265, VP9, AV1, AAC, etc.)
+
+For reproducibility, use the fetch-ffmpeg.ps1 script which downloads
+and verifies these exact binaries.

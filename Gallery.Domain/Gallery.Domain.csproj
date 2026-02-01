@@ -4,6 +4,15 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- Package metadata -->
+    <Description>Domain models for NextGallery - media items, workspaces, thumbnails, and EXIF metadata entities.</Description>
+    <Authors>mcp-tool-shop</Authors>
+    <Company>MCP Tool Shop</Company>
+    <Copyright>Copyright (c) 2025-2026 MCP Tool Shop</Copyright>
+    <PackageProjectUrl>https://github.com/mcp-tool-shop-org/next-gallery</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/mcp-tool-shop-org/next-gallery</RepositoryUrl>
+    <PackageTags>domain;gallery;media;ddd</PackageTags>
   </PropertyGroup>
 
 </Project>

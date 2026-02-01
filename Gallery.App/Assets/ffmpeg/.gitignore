@@ -1,0 +1,9 @@
+# FFmpeg binaries are fetched by CI or fetch-ffmpeg.ps1 script
+# Keep them out of git to avoid repo bloat
+
+win-x64/*.exe
+win-arm64/*.exe
+
+# Keep the LICENSES folder and this .gitignore tracked
+!LICENSES/
+!.gitignore

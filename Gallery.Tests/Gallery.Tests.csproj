@@ -6,6 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+
+    <!-- Package metadata -->
+    <Description>Unit and integration tests for NextGallery - workspace normalization, media scanning, and thumbnail generation tests.</Description>
+    <Authors>mcp-tool-shop</Authors>
   </PropertyGroup>
 
   <ItemGroup>

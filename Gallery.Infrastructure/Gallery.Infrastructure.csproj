@@ -4,6 +4,15 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- Package metadata -->
+    <Description>Infrastructure implementations for NextGallery - SQLite persistence, ImageSharp thumbnails, FFmpeg video processing, and EXIF extraction.</Description>
+    <Authors>mcp-tool-shop</Authors>
+    <Company>MCP Tool Shop</Company>
+    <Copyright>Copyright (c) 2025-2026 MCP Tool Shop</Copyright>
+    <PackageProjectUrl>https://github.com/mcp-tool-shop-org/next-gallery</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/mcp-tool-shop-org/next-gallery</RepositoryUrl>
+    <PackageTags>infrastructure;sqlite;imagesharp;ffmpeg;metadata</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

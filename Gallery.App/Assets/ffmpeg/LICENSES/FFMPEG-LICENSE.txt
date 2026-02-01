@@ -1,0 +1,21 @@
+FFmpeg License
+==============
+
+FFmpeg is licensed under the GNU Lesser General Public License (LGPL) version 2.1
+or later. Some optional parts of FFmpeg are licensed under the GNU General Public
+License (GPL) version 2 or later.
+
+This application bundles FFmpeg binaries built with LGPL-compatible options only.
+
+For the full FFmpeg license text, see:
+https://ffmpeg.org/legal.html
+
+For the LGPL 2.1 license text, see:
+https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+
+Source Code
+-----------
+FFmpeg source code is available at: https://ffmpeg.org/download.html
+
+The specific version bundled with this application and build configuration
+can be found in the FFMPEG-BUILD-INFO.txt file.

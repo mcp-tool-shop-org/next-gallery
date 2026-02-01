@@ -12,6 +12,7 @@ public sealed class ThumbWorker : IDisposable
     private readonly IMediaItemStore _itemStore;
     private readonly IThumbCache _cache;
     private readonly IThumbGenerator _generator;
+    private readonly IVideoThumbExtractor? _videoExtractor;
     private readonly int _maxConcurrency;
 
     private CancellationTokenSource? _cts;
@@ -19,17 +20,24 @@ public sealed class ThumbWorker : IDisposable
 
     public event EventHandler<ThumbGeneratedEventArgs>? ThumbGenerated;
 
+    /// <summary>
+    /// Whether video thumbnail extraction is available.
+    /// </summary>
+    public bool IsVideoThumbsAvailable => _videoExtractor?.IsAvailable ?? false;
+
     public ThumbWorker(
         IThumbJobStore jobStore,
         IMediaItemStore itemStore,
         IThumbCache cache,
         IThumbGenerator generator,
+        IVideoThumbExtractor? videoExtractor = null,
         int maxConcurrency = 2)
     {
         _jobStore = jobStore;
         _itemStore = itemStore;
         _cache = cache;
         _generator = generator;
+        _videoExtractor = videoExtractor;
         _maxConcurrency = maxConcurrency;
     }
 
@@ -130,9 +138,25 @@ public sealed class ThumbWorker : IDisposable
                 return;
             }
 
-            // Generate thumbnail
+            // Generate thumbnail based on media type
             var maxPixels = (int)job.Size;
-            var jpegBytes = await _generator.GenerateImageThumbAsync(item.Path, maxPixels, ct);
+            byte[] jpegBytes;
+
+            if (item.Type == MediaType.Video)
+            {
+                jpegBytes = await GenerateVideoThumbAsync(item, maxPixels, ct);
+            }
+            else
+            {
+                jpegBytes = await _generator.GenerateImageThumbAsync(item.Path, maxPixels, ct);
+            }
+
+            // If we got no bytes (e.g., video extractor unavailable), mark as failed
+            if (jpegBytes.Length == 0)
+            {
+                await _jobStore.MarkFailedAsync(job.Id, "Thumbnail extraction not available", ct);
+                return;
+            }
 
             // Write to cache
             await _cache.WriteAsync(thumbPath, jpegBytes, ct);
@@ -150,6 +174,21 @@ public sealed class ThumbWorker : IDisposable
         {
             await _jobStore.MarkFailedAsync(job.Id, ex.Message, ct);
         }
+    }
+
+    private async Task<byte[]> GenerateVideoThumbAsync(Domain.Models.MediaItem item, int maxPixels, CancellationToken ct)
+    {
+        // Video thumbnails require the optional video extractor
+        if (_videoExtractor is null || !_videoExtractor.IsAvailable)
+        {
+            return Array.Empty<byte>();
+        }
+
+        // Calculate extraction time based on duration
+        var durationSeconds = item.Duration?.TotalSeconds ?? 10.0;
+        var extractAt = _videoExtractor.GetRecommendedExtractionTime(durationSeconds);
+
+        return await _videoExtractor.ExtractFrameJpegAsync(item.Path, extractAt, maxPixels, ct);
     }
 
     public void Dispose()

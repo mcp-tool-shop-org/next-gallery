@@ -4,6 +4,15 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- Package metadata -->
+    <Description>Application layer for NextGallery - use cases for media scanning, thumbnail generation, workspace management, and search.</Description>
+    <Authors>mcp-tool-shop</Authors>
+    <Company>MCP Tool Shop</Company>
+    <Copyright>Copyright (c) 2025-2026 MCP Tool Shop</Copyright>
+    <PackageProjectUrl>https://github.com/mcp-tool-shop-org/next-gallery</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/mcp-tool-shop-org/next-gallery</RepositoryUrl>
+    <PackageTags>application;use-cases;clean-architecture</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

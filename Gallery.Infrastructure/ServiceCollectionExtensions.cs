@@ -27,7 +27,20 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IThumbCache, ThumbCache>();
         services.AddSingleton<IThumbGenerator, ThumbGenerator>();
         services.AddSingleton<IItemIndexService, ItemIndexService>();
-        services.AddSingleton<ThumbWorker>();
+
+        // Video thumbnail extraction (optional - works when FFmpeg is available)
+        services.AddSingleton<FfmpegLocator>();
+        services.AddSingleton<IVideoThumbExtractor, FfmpegVideoThumbExtractor>();
+
+        // Thumb worker with video support
+        services.AddSingleton<ThumbWorker>(sp => new ThumbWorker(
+            sp.GetRequiredService<IThumbJobStore>(),
+            sp.GetRequiredService<IMediaItemStore>(),
+            sp.GetRequiredService<IThumbCache>(),
+            sp.GetRequiredService<IThumbGenerator>(),
+            sp.GetService<IVideoThumbExtractor>(),
+            maxConcurrency: 2
+        ));
 
         return services;
     }
