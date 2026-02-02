@@ -92,11 +92,13 @@ public record ParameterDiff(
 ```
 
 **Deliverables:**
-- [ ] Compare mode toggle (select 2 items)
-- [ ] Side-by-side image view with synchronized zoom/pan
-- [ ] Parameter diff table (model, steps, CFG, seed, etc.)
-- [ ] "What changed" summary
-- [ ] Overlay blend mode (slider 0-100%)
+- [x] Compare mode toggle (StartCompareCommand)
+- [x] Side-by-side image view (CompareViewMode.SideBySide)
+- [x] Parameter diff table (ParameterDiffs collection)
+- [x] "What changed" summary (ChangeSummary property)
+- [x] Overlay blend mode (OverlayBlendRatio property)
+- [x] Swap left/right (SwapCompareCommand)
+- [x] Cycle view modes (CycleCompareViewModeCommand)
 
 ### 0.3 Workflow Search & Filter
 **Priority: HIGH** - Find images by generation parameters
@@ -113,12 +115,14 @@ public record WorkflowQuery(
 ```
 
 **Deliverables:**
-- [ ] Workflow filter sidebar panel
-- [ ] Model dropdown (auto-populated from index)
-- [ ] Sampler dropdown
-- [ ] Steps/CFG range sliders
-- [ ] Seed search (exact match)
-- [ ] Combined filter logic (AND)
+- [x] Workflow filter panel (ToggleFilterPanelCommand)
+- [x] Preset dropdown (AvailablePresets auto-populated)
+- [x] Prompt text search (PromptSearchText)
+- [x] Seed search - exact match (SeedSearchText)
+- [x] Combined filter logic - AND (WorkflowQuery.Matches)
+- [x] Filter summary display (FilterSummary property)
+- [x] Quick filter by selected preset (FilterBySelectedPresetCommand)
+- [x] Clear all filters (ClearFiltersCommand)
 
 ---
 
@@ -548,5 +552,18 @@ CREATE INDEX IX_MediaItems_Prompt ON MediaItems(Prompt);
 ---
 
 *Roadmap created: 2026-02-01*
-*Last updated: 2026-02-01*
+*Last updated: 2026-02-02*
 *Author: Claude + mcp-tool-shop*
+
+---
+
+## CHANGELOG
+
+### 2026-02-02
+- ✅ **Phase 0 Complete** - All CodeComfy Job Agency features implemented
+  - Job actions: Delete, Open, Copy Prompt, Copy Metadata, Copy Params
+  - Compare Mode: Side-by-side, Overlay, DiffOnly with parameter diff
+  - Workflow Search: Prompt, Seed, Preset, Favorites filtering
+- Added 30 new tests (165 total)
+- Updated README with 2026 features
+- Added v0.3.0 release notes

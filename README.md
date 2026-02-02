@@ -1,15 +1,42 @@
 # NextGallery
 
+[![Build](https://github.com/mcp-tool-shop-org/next-gallery/actions/workflows/build.yml/badge.svg)](https://github.com/mcp-tool-shop-org/next-gallery/actions/workflows/build.yml)
+[![Tests](https://github.com/mcp-tool-shop-org/next-gallery/actions/workflows/test.yml/badge.svg)](https://github.com/mcp-tool-shop-org/next-gallery/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **NextGallery** is a high-performance Windows desktop application for browsing and managing AI-generated images and videos. Built with .NET MAUI and WinUI 3, it provides a native Windows experience with smooth scrolling, instant previews, and powerful organization tools.
 
 ## Features
 
+### Core Features
 - **High Performance** - Virtualized grid with lazy loading for thousands of images
 - **Instant Previews** - Quick hover previews without opening files
 - **Smart Organization** - Filter by date, prompt, model, or custom tags
 - **Metadata Display** - View generation parameters, prompts, and settings
 - **ComfyUI Integration** - Works seamlessly with [CodeComfy VS Code](https://github.com/mcp-tool-shop-org/codecomfy-vscode)
 - **Video Support** - Preview and organize AI-generated videos
+
+### 2026 Features (New!)
+
+#### Job Management (Agency)
+- **Delete Jobs** - Remove jobs from index with optional file deletion
+- **Open in Explorer** - Quick access to job output files
+- **Copy Prompt** - One-click copy prompt to clipboard
+- **Copy Metadata** - Export full JSON metadata or human-readable params
+
+#### Compare Mode
+- **Side-by-Side View** - Compare two generations visually
+- **Parameter Diff** - See exactly what changed (seed, prompt, preset, etc.)
+- **Change Summary** - Quick overview of differences
+- **View Modes** - SideBySide, Overlay, or DiffOnly
+
+#### Workflow Search & Filter
+- **Prompt Search** - Find images by prompt text (case-insensitive)
+- **Seed Search** - Exact seed matching for finding variations
+- **Preset Filter** - Filter by model/preset
+- **Favorites Filter** - Show only favorited jobs
+- **Date Range** - Filter by creation date
+- **Combined Filters** - All filters work together (AND logic)
 
 ## Installation
 
@@ -52,8 +79,17 @@ NextGallery is designed to work with the [CodeComfy VS Code extension](https://g
 ## Requirements
 
 - Windows 10 version 1809 or later
-- .NET 8.0 Runtime
+- .NET 9.0 Runtime
 - Windows App SDK 1.4+
+
+## Roadmap
+
+See [ROADMAP_2026.md](ROADMAP_2026.md) for the full development roadmap including:
+- Phase 0: CodeComfy Job Agency ✅
+- Phase 1: Agency Foundation (multi-select, batch operations)
+- Phase 2: Smart Metadata (AI prompt extraction, duplicate detection)
+- Phase 3: Export Pipeline (ZIP, folder, cloud upload)
+- Phase 4: UI/UX Polish (themes, accessibility)
 
 ## License
 

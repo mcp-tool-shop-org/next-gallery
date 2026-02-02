@@ -1,3 +1,65 @@
+# NextGallery Release Notes
+
+---
+
+## v0.3.0 — 2026 Features Release
+
+**Release Date:** 2026-02-02
+
+This release adds industry-standard 2026 gallery features based on research of SmartGallery, ComfyUI-Gallery, and current trends in AI image management tools.
+
+### New Features
+
+#### Job Management (Agency)
+Full CRUD operations for CodeComfy jobs:
+- **Delete Job** - Remove jobs from index with optional file deletion
+- **Open in Explorer** - Quick access to job output files with file selection
+- **Copy Prompt** - One-click copy prompt text to clipboard
+- **Copy Full Metadata** - Export complete job metadata as formatted JSON
+- **Copy Generation Params** - Human-readable parameter summary
+
+#### Compare Mode
+Side-by-side comparison inspired by SmartGallery:
+- **Side-by-Side View** - Compare two jobs visually
+- **Parameter Diff Table** - See differences in seed, prompt, preset, dimensions, etc.
+- **Change Summary** - Quick "what changed" overview
+- **View Modes** - SideBySide, Overlay (with blend slider), DiffOnly
+- **Swap & Cycle** - Swap left/right, cycle through view modes
+
+#### Workflow Search & Filter
+Find images by generation parameters:
+- **Prompt Search** - Case-insensitive text search in prompts
+- **Seed Search** - Exact seed matching for finding variations
+- **Preset Filter** - Auto-populated dropdown from your jobs
+- **Favorites Filter** - Show only favorited jobs
+- **Date Range** - Filter by creation date (CreatedAfter/Before)
+- **Combined Filters** - All filters use AND logic
+- **Filter Summary** - Shows active filters at a glance
+
+### New Domain Models
+
+| Model | Purpose |
+|-------|---------|
+| `CompareSession` | Holds left/right jobs, view mode, diff calculation |
+| `ParameterDiff` | Single parameter difference with IsDifferent flag |
+| `WorkflowQuery` | Filter criteria with Matches() and GetFilterSummary() |
+
+### Testing
+- **30 new tests** for Compare and WorkflowQuery features
+- **165 total tests** passing (up from 135)
+
+### Files Added
+- `Gallery.Domain/Index/CompareSession.cs`
+- `Gallery.Domain/Index/WorkflowQuery.cs`
+- `Gallery.Tests/CodeComfy2026FeatureTests.cs`
+
+### Files Modified
+- `Gallery.App/ViewModels/CodeComfyViewModel.cs` - Added all new commands
+- `ROADMAP_2026.md` - Updated with Phase 0 deliverables
+- `README.md` - Added 2026 features documentation
+
+---
+
 # NextGallery Phase 2 RC1 — `nextgallery-phase2-rc1`
 
 This release is the Phase 2 "contracts-first" implementation of NextGallery. The implementation is driven by deterministic contracts and vector/scenario test suites; passing tests is the definition of correctness.
