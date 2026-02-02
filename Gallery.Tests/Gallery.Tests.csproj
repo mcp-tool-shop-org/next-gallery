@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Gallery.Domain\Gallery.Domain.csproj" />
+    <ProjectReference Include="..\Gallery.Application\Gallery.Application.csproj" />
+    <ProjectReference Include="..\Gallery.Infrastructure\Gallery.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

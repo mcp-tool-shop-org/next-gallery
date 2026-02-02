@@ -305,6 +305,57 @@ public sealed class MediaItemStore : IMediaItemStore
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    public async Task UpdateAsync(MediaItem item, CancellationToken ct = default)
+    {
+        var conn = _db.GetConnection();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            UPDATE items SET
+                path = @path,
+                extension = @extension,
+                type = @type,
+                size_bytes = @size_bytes,
+                modified_at = @modified_at,
+                taken_at = @taken_at,
+                width = @width,
+                height = @height,
+                duration_ticks = @duration_ticks,
+                is_favorite = @is_favorite,
+                rating = @rating,
+                thumb_small_path = @thumb_small_path,
+                thumb_large_path = @thumb_large_path,
+                last_indexed_at = @last_indexed_at
+            WHERE id = @id
+            """;
+
+        cmd.Parameters.AddWithValue("@id", item.Id);
+        cmd.Parameters.AddWithValue("@path", item.Path);
+        cmd.Parameters.AddWithValue("@extension", item.Extension);
+        cmd.Parameters.AddWithValue("@type", (int)item.Type);
+        cmd.Parameters.AddWithValue("@size_bytes", item.SizeBytes);
+        cmd.Parameters.AddWithValue("@modified_at", item.ModifiedAt.ToString("o"));
+        cmd.Parameters.AddWithValue("@taken_at", item.TakenAt?.ToString("o") ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("@width", item.Width ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("@height", item.Height ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("@duration_ticks", item.Duration?.Ticks ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("@is_favorite", item.IsFavorite ? 1 : 0);
+        cmd.Parameters.AddWithValue("@rating", item.Rating);
+        cmd.Parameters.AddWithValue("@thumb_small_path", item.ThumbSmallPath ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("@thumb_large_path", item.ThumbLargePath ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("@last_indexed_at", item.LastIndexedAt.ToString("o"));
+
+        await cmd.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task DeleteAsync(long id, CancellationToken ct = default)
+    {
+        var conn = _db.GetConnection();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "DELETE FROM items WHERE id = @id";
+        cmd.Parameters.AddWithValue("@id", id);
+        await cmd.ExecuteNonQueryAsync(ct);
+    }
+
     public async Task DeleteByPathAsync(string path, CancellationToken ct = default)
     {
         var conn = _db.GetConnection();

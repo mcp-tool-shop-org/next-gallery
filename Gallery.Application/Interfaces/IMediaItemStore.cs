@@ -36,9 +36,21 @@ public interface IMediaItemStore
     Task<GroupedQueryResult> QueryGroupedAsync(LibraryQuery query, int limit = 1000, CancellationToken ct = default);
 
     Task<long> UpsertAsync(MediaItem item, CancellationToken ct = default);
+
+    /// <summary>
+    /// Update an existing media item.
+    /// </summary>
+    Task UpdateAsync(MediaItem item, CancellationToken ct = default);
+
     Task UpdateThumbPathAsync(long id, ThumbSize size, string thumbPath, CancellationToken ct = default);
     Task SetFavoriteAsync(long id, bool isFavorite, CancellationToken ct = default);
     Task SetRatingAsync(long id, int rating, CancellationToken ct = default);
+
+    /// <summary>
+    /// Delete a media item by ID.
+    /// </summary>
+    Task DeleteAsync(long id, CancellationToken ct = default);
+
     Task DeleteByPathAsync(string path, CancellationToken ct = default);
     Task<int> GetCountAsync(CancellationToken ct = default);
 }

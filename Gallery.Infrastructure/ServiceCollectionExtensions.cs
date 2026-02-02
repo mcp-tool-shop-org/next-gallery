@@ -27,6 +27,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IThumbCache, ThumbCache>();
         services.AddSingleton<IThumbGenerator, ThumbGenerator>();
         services.AddSingleton<IItemIndexService, ItemIndexService>();
+        services.AddSingleton<IMediaActionService, MediaActionService>();
 
         // Video thumbnail extraction (optional - works when FFmpeg is available)
         services.AddSingleton<FfmpegLocator>();

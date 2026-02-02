@@ -7,6 +7,7 @@ using Gallery.App.Services;
 using Gallery.Domain.Enums;
 using Gallery.Domain.Models;
 using Gallery.Infrastructure.Services;
+using Microsoft.Maui.ApplicationModel;
 
 namespace Gallery.App.ViewModels;
 
@@ -15,6 +16,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ILibraryStore _libraryStore;
     private readonly IMediaItemStore _itemStore;
     private readonly IItemIndexService _indexService;
+    private readonly IMediaActionService _actionService;
     private readonly ThumbWorker _thumbWorker;
     private readonly SelectionService _selection;
     private readonly QueryService _query;
@@ -88,10 +90,30 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public bool IsGrouped => GroupBy != GroupBy.None;
 
+    // Multi-select state
+    [ObservableProperty]
+    private int _selectedCount;
+
+    [ObservableProperty]
+    private bool _isMultiSelectActive;
+
+    [ObservableProperty]
+    private bool _isActionInProgress;
+
+    [ObservableProperty]
+    private string _actionStatus = string.Empty;
+
+    [ObservableProperty]
+    private int _actionProgress;
+
+    [ObservableProperty]
+    private int _actionTotal;
+
     public MainViewModel(
         ILibraryStore libraryStore,
         IMediaItemStore itemStore,
         IItemIndexService indexService,
+        IMediaActionService actionService,
         ThumbWorker thumbWorker,
         SelectionService selection,
         QueryService query)
@@ -99,12 +121,14 @@ public partial class MainViewModel : ObservableObject
         _libraryStore = libraryStore;
         _itemStore = itemStore;
         _indexService = indexService;
+        _actionService = actionService;
         _thumbWorker = thumbWorker;
         _selection = selection;
         _query = query;
 
         _thumbWorker.ThumbGenerated += OnThumbGenerated;
         _selection.SelectionChanged += OnSelectionChanged;
+        _selection.MultiSelectionChanged += OnMultiSelectionChanged;
         _query.QueryChanged += OnQueryChanged;
     }
 
@@ -518,10 +542,284 @@ public partial class MainViewModel : ObservableObject
     {
         if (SelectedItem is null) return;
 
-        await Launcher.Default.OpenAsync(new OpenFileRequest
+        await _actionService.OpenInExplorerAsync(SelectedItem);
+    }
+
+    [RelayCommand]
+    private async Task OpenWithDefaultAppAsync()
+    {
+        if (SelectedItem is null) return;
+
+        await _actionService.OpenWithDefaultAppAsync(SelectedItem);
+    }
+
+    #endregion
+
+    #region Multi-Select Actions
+
+    /// <summary>
+    /// Toggle selection of an item (Ctrl+Click).
+    /// </summary>
+    [RelayCommand]
+    private void ToggleItemSelection(MediaItem? item)
+    {
+        if (item is null) return;
+        _selection.ToggleSelection(item);
+    }
+
+    /// <summary>
+    /// Select range from anchor to item (Shift+Click).
+    /// </summary>
+    [RelayCommand]
+    private void SelectRange(MediaItem? item)
+    {
+        if (item is null) return;
+        _selection.SelectRange(item);
+    }
+
+    /// <summary>
+    /// Select all items (Ctrl+A).
+    /// </summary>
+    [RelayCommand]
+    private void SelectAll()
+    {
+        _selection.SelectAll();
+    }
+
+    /// <summary>
+    /// Invert selection (Ctrl+Shift+A).
+    /// </summary>
+    [RelayCommand]
+    private void InvertSelection()
+    {
+        _selection.InvertSelection();
+    }
+
+    /// <summary>
+    /// Extend selection while navigating (Shift+Arrow).
+    /// </summary>
+    [RelayCommand]
+    private void ExtendSelectionLeft() => _selection.ExtendSelection(-1);
+
+    [RelayCommand]
+    private void ExtendSelectionRight() => _selection.ExtendSelection(1);
+
+    [RelayCommand]
+    private void ExtendSelectionUp() => _selection.ExtendSelection(-_columnsPerRow);
+
+    [RelayCommand]
+    private void ExtendSelectionDown() => _selection.ExtendSelection(_columnsPerRow);
+
+    #endregion
+
+    #region Batch Actions (Agency!)
+
+    /// <summary>
+    /// Delete selected items (move to trash by default).
+    /// </summary>
+    [RelayCommand]
+    private async Task DeleteSelectedAsync()
+    {
+        var items = _selection.SelectedItems;
+        if (items.Count == 0) return;
+
+        // TODO: Show confirmation dialog
+        await ExecuteActionAsync(
+            $"Deleting {items.Count} item(s)...",
+            async (progress, ct) => await _actionService.DeleteAsync(items, permanent: false, progress, ct),
+            items);
+    }
+
+    /// <summary>
+    /// Permanently delete selected items (no trash).
+    /// </summary>
+    [RelayCommand]
+    private async Task DeletePermanentlyAsync()
+    {
+        var items = _selection.SelectedItems;
+        if (items.Count == 0) return;
+
+        // TODO: Show confirmation dialog with warning
+        await ExecuteActionAsync(
+            $"Permanently deleting {items.Count} item(s)...",
+            async (progress, ct) => await _actionService.DeleteAsync(items, permanent: true, progress, ct),
+            items);
+    }
+
+    /// <summary>
+    /// Move selected items to a folder.
+    /// </summary>
+    [RelayCommand]
+    private async Task MoveSelectedAsync()
+    {
+        var items = _selection.SelectedItems;
+        if (items.Count == 0) return;
+
+        var result = await FolderPicker.Default.PickAsync(CancellationToken.None);
+        if (!result.IsSuccessful || string.IsNullOrEmpty(result.Folder?.Path)) return;
+
+        await ExecuteActionAsync(
+            $"Moving {items.Count} item(s)...",
+            async (progress, ct) => await _actionService.MoveAsync(items, result.Folder.Path, progress, ct),
+            items);
+    }
+
+    /// <summary>
+    /// Copy selected items to a folder.
+    /// </summary>
+    [RelayCommand]
+    private async Task CopySelectedAsync()
+    {
+        var items = _selection.SelectedItems;
+        if (items.Count == 0) return;
+
+        var result = await FolderPicker.Default.PickAsync(CancellationToken.None);
+        if (!result.IsSuccessful || string.IsNullOrEmpty(result.Folder?.Path)) return;
+
+        await ExecuteActionAsync(
+            $"Copying {items.Count} item(s)...",
+            async (progress, ct) => await _actionService.CopyAsync(items, result.Folder.Path, progress, ct),
+            null); // Don't remove from list on copy
+    }
+
+    /// <summary>
+    /// Set favorite on all selected items.
+    /// </summary>
+    [RelayCommand]
+    private async Task SetSelectedFavoriteAsync(bool favorite)
+    {
+        var items = _selection.SelectedItems;
+        if (items.Count == 0) return;
+
+        IsActionInProgress = true;
+        ActionStatus = $"Setting favorite on {items.Count} item(s)...";
+
+        try
         {
-            File = new ReadOnlyFile(SelectedItem.Path)
-        });
+            foreach (var item in items)
+            {
+                await _itemStore.SetFavoriteAsync(item.Id, favorite);
+                var updated = item with { IsFavorite = favorite };
+                _selection.UpdateItem(updated);
+                UpdateItemInCollection(updated);
+            }
+
+            ActionStatus = $"Updated {items.Count} item(s)";
+
+            // Refresh if favorites filter is active
+            if (FavoritesOnly)
+            {
+                await ExecuteQueryAsync();
+            }
+        }
+        finally
+        {
+            IsActionInProgress = false;
+        }
+    }
+
+    /// <summary>
+    /// Set rating on all selected items.
+    /// </summary>
+    [RelayCommand]
+    private async Task SetSelectedRatingAsync(int rating)
+    {
+        var items = _selection.SelectedItems;
+        if (items.Count == 0) return;
+
+        IsActionInProgress = true;
+        ActionStatus = $"Setting rating on {items.Count} item(s)...";
+
+        try
+        {
+            foreach (var item in items)
+            {
+                await _itemStore.SetRatingAsync(item.Id, rating);
+                var updated = item with { Rating = rating };
+                _selection.UpdateItem(updated);
+                UpdateItemInCollection(updated);
+            }
+
+            ActionStatus = $"Updated {items.Count} item(s)";
+        }
+        finally
+        {
+            IsActionInProgress = false;
+        }
+    }
+
+    /// <summary>
+    /// Quick export to Downloads folder.
+    /// </summary>
+    [RelayCommand]
+    private async Task QuickExportAsync()
+    {
+        var items = _selection.SelectedItems;
+        if (items.Count == 0 && SelectedItem != null)
+        {
+            items = [SelectedItem];
+        }
+        if (items.Count == 0) return;
+
+        var downloads = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        downloads = Path.Combine(downloads, "Downloads");
+
+        await ExecuteActionAsync(
+            $"Exporting {items.Count} item(s) to Downloads...",
+            async (progress, ct) => await _actionService.CopyAsync(items, downloads, progress, ct),
+            null);
+    }
+
+    /// <summary>
+    /// Execute a batch action with progress tracking.
+    /// </summary>
+    private async Task ExecuteActionAsync(
+        string statusMessage,
+        Func<IProgress<ActionProgress>, CancellationToken, Task<ActionResult>> action,
+        IReadOnlyList<MediaItem>? itemsToRemove)
+    {
+        if (IsActionInProgress) return;
+
+        IsActionInProgress = true;
+        ActionStatus = statusMessage;
+        ActionProgress = 0;
+        ActionTotal = 100;
+
+        try
+        {
+            var progress = new Progress<ActionProgress>(p =>
+            {
+                ActionProgress = p.Completed;
+                ActionTotal = p.Total;
+                ActionStatus = $"{statusMessage} ({p.Completed}/{p.Total})";
+            });
+
+            var result = await action(progress, CancellationToken.None);
+
+            if (result.Success)
+            {
+                ActionStatus = $"Completed: {result.SuccessCount} item(s)";
+
+                if (itemsToRemove != null && itemsToRemove.Count > 0)
+                {
+                    _selection.RemoveItems(itemsToRemove);
+                    await ExecuteQueryAsync();
+                }
+            }
+            else
+            {
+                ActionStatus = $"Completed with errors: {result.SuccessCount} succeeded, {result.FailureCount} failed";
+                // TODO: Show error details dialog
+            }
+        }
+        catch (Exception ex)
+        {
+            ActionStatus = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            IsActionInProgress = false;
+        }
     }
 
     #endregion
@@ -543,6 +841,15 @@ public partial class MainViewModel : ObservableObject
         MainThread.BeginInvokeOnMainThread(() =>
         {
             SelectedItem = e.Current;
+        });
+    }
+
+    private void OnMultiSelectionChanged(object? sender, EventArgs e)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            SelectedCount = _selection.SelectedCount;
+            IsMultiSelectActive = _selection.IsMultiSelectActive;
         });
     }
 
